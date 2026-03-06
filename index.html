@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Crew Allocator">
+<meta name="theme-color" content="#07111f">
+<title>Crew Allocator</title>
+<link id="pwa-manifest" rel="manifest">
+<link id="apple-touch-icon" rel="apple-touch-icon">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07111f;
+  --surface: #0c1a2e;
+  --surface2: #111f35;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --gold: #d4a843;
+  --gold2: #f0c96a;
+  --cream: #ede8df;
+  --muted: #7a8fa8;
+  --dim: #3a4f68;
+  --senior: #d4a843;
+  --inter: #4ba3d4;
+  --junior: #5dc882;
+  --cox: #e07a5f;
+  --purple: #a78bdb;
+  --orange: #e09a5a;
+  --red: #e05555;
+  --green: #5dc882;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--cream);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden;}
+
+/* Subtle water texture */
+body::after{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(175deg,transparent 0,transparent 60px,rgba(75,163,212,0.025) 60px,rgba(75,163,212,0.025) 61px);
+  pointer-events:none;z-index:0;
+}
+
+.wrap{max-width:1160px;margin:0 auto;padding:1.5rem 2rem;position:relative;z-index:1;}
+
+/* HEADER */
+header{padding:2.5rem 0 2rem;text-align:center;border-bottom:1px solid rgba(212,168,67,0.2);margin-bottom:0;}
+.header-oar{font-size:2.2rem;line-height:1;margin-bottom:0.6rem;filter:drop-shadow(0 0 12px rgba(212,168,67,0.4));}
+h1{font-family:'Cormorant Garamond',serif;font-size:3.2rem;font-weight:700;letter-spacing:-0.5px;line-height:1;color:var(--gold);}
+h1 em{color:var(--cream);font-style:normal;font-weight:400;}
+.tagline{font-size:0.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-top:0.6rem;}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:2rem;margin-top:2rem;overflow-x:auto;}
+.tab{
+  padding:0.75rem 1.4rem;background:transparent;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.67rem;letter-spacing:2px;
+  text-transform:uppercase;cursor:pointer;transition:all 0.2s;white-space:nowrap;margin-bottom:-1px;
+}
+.tab.on{color:var(--gold);border-bottom-color:var(--gold);}
+.tab:hover:not(.on){color:var(--cream);}
+.pane{display:none;animation:fadeUp 0.3s ease;}
+.pane.on{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes popIn{from{opacity:0;transform:scale(0.97);}to{opacity:1;transform:scale(1);}}
+
+/* SECTION WRAPPER */
+.section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.4rem;}
+.sec-head{display:flex;align-items:center;gap:0.6rem;margin-bottom:0.5rem;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;}
+.sec-head .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sec-desc{font-size:0.7rem;color:var(--muted);margin-bottom:1.2rem;line-height:1.6;}
+
+/* SQUADS GRID */
+.squads-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem;margin-bottom:1.2rem;}
+@media(max-width:900px){.squads-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.squads-grid{grid-template-columns:1fr;}}
+
+.squad-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.3rem;}
+.squad-title{display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;font-size:0.6rem;letter-spacing:3px;text-transform:uppercase;font-weight:500;}
+.squad-title .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+.s-senior .dot,.s-senior.active-dot{background:var(--senior);}
+.s-senior .squad-title{color:var(--senior);}
+.s-inter .dot{background:var(--inter);}
+.s-inter .squad-title{color:var(--inter);}
+.s-junior .dot{background:var(--junior);}
+.s-junior .squad-title{color:var(--junior);}
+.s-cox .dot{background:var(--cox);}
+.s-cox .squad-title{color:var(--cox);}
+
+.rower-list{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:0.8rem;}
+.rower-list::-webkit-scrollbar{width:2px;}
+.rower-list::-webkit-scrollbar-thumb{background:rgba(212,168,67,0.3);border-radius:2px;}
+
+.rower-row{display:flex;align-items:center;gap:0.35rem;animation:popIn 0.2s ease;}
+.rower-row input[type=text]{
+  flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:5px;
+  padding:0.38rem 0.55rem;color:var(--cream);font-family:'JetBrains Mono',monospace;font-size:0.72rem;outline:none;transition:border-color 0.2s;min-width:0;
+}
+.rower-row input[type=text]:focus{border-color:rgba(212,168,67,0.4);}
+
+.rank-wrap{display:flex;flex-direction:column;align-items:center;flex-shrink:0;}
+.rank-lbl{font-size:0.47rem;color:var(--muted);letter-spacing:1px;margin-bottom:1px;}
+.rank-sel{
+  width:38px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:5px;
+  padding:0.35rem 0.1rem;color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:0.72rem;
+  outline:none;cursor:pointer;appearance:none;text-align:center;
+}
+
+/* Cox-specific: can_row toggle */
+.cox-toggle{
+  display:flex;align-items:center;gap:0.3rem;font-size:0.58rem;color:var(--muted);
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:4px;
+  padding:0.25rem 0.4rem;cursor:pointer;transition:all 0.2s;flex-shrink:0;white-space:nowrap;
+}
+.cox-toggle.can-row{color:var(--inter);border-color:rgba(75,163,212,0.35);background:rgba(75,163,212,0.08);}
+.cox-toggle .ct-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
+
+.present-btn{
+  width:24px;height:24px;border-radius:50%;border:1px solid var(--border2);background:transparent;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.58rem;
+  transition:all 0.2s;color:var(--muted);flex-shrink:0;
+}
+.present-btn.on{background:rgba(93,200,130,0.18);border-color:var(--green);color:var(--green);}
+.del-btn{
+  width:20px;height:20px;border-radius:4px;border:none;background:rgba(224,85,85,0.1);
+  color:var(--red);cursor:pointer;font-size:0.7rem;display:flex;align-items:center;justify-content:center;
+  transition:background 0.2s;flex-shrink:0;
+}
+.del-btn:hover{background:rgba(224,85,85,0.25);}
+
+.add-btn{
+  width:100%;padding:0.42rem;background:transparent;border:1px dashed rgba(255,255,255,0.1);
+  border-radius:6px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.68rem;
+  cursor:pointer;transition:all 0.2s;letter-spacing:1px;
+}
+.add-btn:hover{border-color:rgba(212,168,67,0.35);color:var(--gold);background:rgba(212,168,67,0.04);}
+.add-btn.cox-add:hover{border-color:rgba(224,122,95,0.35);color:var(--cox);}
+
+/* REGATTA CREWS */
+.regatta-list{display:flex;flex-direction:column;gap:0.6rem;margin-bottom:1rem;}
+.rc-row{
+  display:flex;align-items:center;gap:0.6rem;background:rgba(167,139,219,0.05);
+  border:1px solid rgba(167,139,219,0.18);border-radius:8px;padding:0.7rem 0.9rem;animation:popIn 0.2s ease;
+  flex-wrap:wrap;
+}
+.rc-name-input{
+  background:transparent;border:none;border-bottom:1px solid rgba(167,139,219,0.3);
+  color:var(--purple);font-family:'JetBrains Mono',monospace;font-size:0.75rem;outline:none;
+  width:110px;padding:0.15rem 0.2rem;transition:border-color 0.2s;
+}
+.rc-name-input:focus{border-bottom-color:var(--purple);}
+.rc-size-sel{
+  background:rgba(167,139,219,0.1);border:1px solid rgba(167,139,219,0.22);border-radius:4px;
+  color:var(--purple);font-family:'JetBrains Mono',monospace;font-size:0.68rem;padding:0.22rem 0.35rem;outline:none;cursor:pointer;
+}
+.rc-members-input{
+  flex:1;min-width:160px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:5px;
+  padding:0.32rem 0.55rem;color:var(--cream);font-family:'JetBrains Mono',monospace;font-size:0.7rem;outline:none;transition:border-color 0.2s;
+}
+.rc-members-input:focus{border-color:rgba(167,139,219,0.45);}
+.rc-members-input::placeholder{color:rgba(122,143,168,0.45);}
+.rc-cox-input{
+  width:110px;background:rgba(224,122,95,0.06);border:1px solid rgba(224,122,95,0.2);border-radius:5px;
+  padding:0.32rem 0.55rem;color:var(--cox);font-family:'JetBrains Mono',monospace;font-size:0.7rem;outline:none;transition:border-color 0.2s;
+}
+.rc-cox-input:focus{border-color:rgba(224,122,95,0.45);}
+.rc-cox-input::placeholder{color:rgba(224,122,95,0.35);}
+.field-label{font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem;}
+.field-group{display:flex;flex-direction:column;}
+
+/* RULES */
+.rules-list{display:flex;flex-direction:column;gap:0.55rem;margin-bottom:1rem;}
+.rule-row{
+  display:flex;align-items:center;gap:0.6rem;background:rgba(224,154,90,0.05);
+  border:1px solid rgba(224,154,90,0.16);border-radius:8px;padding:0.62rem 0.85rem;animation:popIn 0.2s ease;
+}
+.rule-type-sel{
+  background:rgba(224,154,90,0.1);border:1px solid rgba(224,154,90,0.22);border-radius:4px;
+  color:var(--orange);font-family:'JetBrains Mono',monospace;font-size:0.67rem;padding:0.28rem 0.4rem;outline:none;cursor:pointer;flex-shrink:0;
+}
+.rule-names-input{
+  flex:1;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:5px;
+  padding:0.3rem 0.55rem;color:var(--cream);font-family:'JetBrains Mono',monospace;font-size:0.7rem;outline:none;transition:border-color 0.2s;
+}
+.rule-names-input:focus{border-color:rgba(224,154,90,0.45);}
+.rule-names-input::placeholder{color:rgba(122,143,168,0.4);}
+
+/* CONTROLS */
+.controls{display:flex;gap:0.85rem;align-items:center;margin-bottom:2rem;flex-wrap:wrap;}
+.go-btn{
+  background:var(--gold);color:#07111f;border:none;border-radius:8px;padding:0.85rem 2rem;
+  font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:500;cursor:pointer;
+  letter-spacing:1.5px;text-transform:uppercase;transition:all 0.2s;box-shadow:0 4px 24px rgba(212,168,67,0.28);
+}
+.go-btn:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 6px 30px rgba(212,168,67,0.38);}
+.secondary-btn{
+  background:transparent;color:var(--muted);border:1px solid var(--border2);border-radius:8px;
+  padding:0.85rem 1.4rem;font-family:'JetBrains Mono',monospace;font-size:0.68rem;cursor:pointer;transition:all 0.2s;
+}
+.secondary-btn:hover{border-color:var(--red);color:var(--red);}
+.stat-pills{display:flex;gap:0.4rem;flex-wrap:wrap;margin-left:auto;}
+.pill{padding:0.3rem 0.7rem;border-radius:20px;font-size:0.62rem;letter-spacing:1px;}
+.p-s{background:rgba(212,168,67,0.1);color:var(--senior);border:1px solid rgba(212,168,67,0.25);}
+.p-i{background:rgba(75,163,212,0.1);color:var(--inter);border:1px solid rgba(75,163,212,0.25);}
+.p-j{background:rgba(93,200,130,0.1);color:var(--junior);border:1px solid rgba(93,200,130,0.25);}
+.p-c{background:rgba(224,122,95,0.1);color:var(--cox);border:1px solid rgba(224,122,95,0.25);}
+
+/* RESULTS */
+.results{display:none;animation:fadeUp 0.4s ease;}
+.results.on{display:block;}
+
+.res-header{
+  font-family:'Cormorant Garamond',serif;font-size:1.45rem;color:var(--gold);
+  margin-bottom:1.3rem;display:flex;align-items:center;gap:1rem;
+}
+.res-header::after{content:'';flex:1;height:1px;background:rgba(212,168,67,0.25);}
+
+/* Roster table */
+.roster-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.4rem;margin-bottom:2rem;overflow-x:auto;}
+.roster-title{font-size:0.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:1rem;}
+table{width:100%;border-collapse:collapse;font-size:0.73rem;}
+th{text-align:left;padding:0.42rem 0.7rem;color:var(--muted);font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400;}
+td{padding:0.48rem 0.7rem;border-bottom:1px solid rgba(255,255,255,0.03);}
+tr:last-child td{border-bottom:none;}
+.r-badge{display:inline-block;width:22px;height:22px;border-radius:4px;text-align:center;line-height:22px;font-size:0.65rem;background:rgba(212,168,67,0.12);color:var(--gold);}
+
+/* Chips */
+.chip{font-size:0.65rem;padding:0.15rem 0.48rem;border-radius:4px;display:inline-block;}
+.ch-s{background:rgba(212,168,67,0.12);color:var(--senior);}
+.ch-i{background:rgba(75,163,212,0.12);color:var(--inter);}
+.ch-j{background:rgba(93,200,130,0.12);color:var(--junior);}
+.ch-c{background:rgba(224,122,95,0.14);color:var(--cox);border:1px solid rgba(224,122,95,0.25);}
+.ch-moved{border:1px solid rgba(212,168,67,0.35);}
+.ch-p{background:rgba(167,139,219,0.12);color:var(--purple);border:1px solid rgba(167,139,219,0.28);}
+.up-tag{font-size:0.55rem;color:var(--gold);opacity:0.7;margin-left:1px;}
+
+/* Scenario cards */
+.sc-grid{display:grid;gap:1.3rem;margin-bottom:2.5rem;}
+.sc-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;overflow:hidden;transition:border-color 0.2s;}
+.sc-card:hover{border-color:rgba(212,168,67,0.28);}
+.sc-card.best{border-color:rgba(212,168,67,0.45);box-shadow:0 0 35px rgba(212,168,67,0.07);}
+.sc-card.regatta-sc{border-color:rgba(167,139,219,0.35);}
+
+.sc-top{padding:1rem 1.3rem;display:flex;align-items:center;gap:0.8rem;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.015);flex-wrap:wrap;}
+.sc-badge{font-size:0.55rem;letter-spacing:2px;text-transform:uppercase;padding:0.25rem 0.6rem;border-radius:4px;flex-shrink:0;}
+.b-rec{background:rgba(212,168,67,0.12);color:var(--gold);border:1px solid rgba(212,168,67,0.25);}
+.b-alt{background:rgba(75,163,212,0.12);color:var(--inter);border:1px solid rgba(75,163,212,0.25);}
+.b-reg{background:rgba(167,139,219,0.12);color:var(--purple);border:1px solid rgba(167,139,219,0.25);}
+.b-dev{background:rgba(93,200,130,0.12);color:var(--junior);border:1px solid rgba(93,200,130,0.25);}
+
+.sc-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--cream);}
+.sc-meta{font-size:0.65rem;color:var(--muted);margin-left:auto;}
+
+.sc-body{padding:1.3rem;}
+.crew-group{margin-bottom:1rem;}
+.crew-group-lbl{font-size:0.56rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem;padding-bottom:0.32rem;border-bottom:1px solid rgba(255,255,255,0.04);}
+
+.boat-row{display:flex;align-items:flex-start;gap:0.85rem;padding:0.58rem 0;border-bottom:1px solid rgba(255,255,255,0.035);}
+.boat-row:last-child{border-bottom:none;}
+.boat-icon{font-size:1rem;flex-shrink:0;margin-top:2px;}
+.boat-info{flex:1;}
+.boat-name{font-size:0.75rem;color:var(--gold);font-weight:500;margin-bottom:0.28rem;}
+.boat-name.rc{color:var(--purple);}
+.boat-chips{display:flex;flex-wrap:wrap;gap:0.3rem;align-items:center;}
+
+/* Cox slot */
+.cox-slot{display:inline-flex;align-items:center;gap:0.3rem;font-size:0.65rem;padding:0.15rem 0.48rem;border-radius:4px;background:rgba(224,122,95,0.1);color:var(--cox);border:1px solid rgba(224,122,95,0.28);}
+.cox-slot.missing{background:rgba(224,85,85,0.1);color:var(--red);border-color:rgba(224,85,85,0.3);animation:pulse 1.5s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
+.cox-icon{font-size:0.7rem;}
+
+/* Rule warnings */
+.rule-checks{display:flex;flex-direction:column;gap:0.3rem;margin-top:0.85rem;}
+.rcheck{font-size:0.68rem;padding:0.3rem 0.65rem;border-radius:5px;display:flex;align-items:center;gap:0.4rem;}
+.rcheck.ok{background:rgba(93,200,130,0.08);color:var(--green);border:1px solid rgba(93,200,130,0.18);}
+.rcheck.warn{background:rgba(224,154,90,0.08);color:var(--orange);border:1px solid rgba(224,154,90,0.18);}
+.rcheck.bad{background:rgba(224,85,85,0.08);color:var(--red);border:1px solid rgba(224,85,85,0.18);}
+
+.sc-note{margin-top:0.9rem;padding:0.65rem 0.85rem;background:rgba(212,168,67,0.04);border-left:2px solid rgba(212,168,67,0.4);border-radius:0 6px 6px 0;font-size:0.7rem;color:var(--muted);line-height:1.65;}
+.leftover-box{margin-top:0.6rem;padding:0.75rem 0.9rem;background:rgba(224,85,85,0.05);border:1px solid rgba(224,85,85,0.12);border-radius:7px;font-size:0.7rem;color:var(--muted);}
+.leftover-box strong{color:var(--red);font-size:0.56rem;letter-spacing:2px;text-transform:uppercase;}
+
+/* Sort toggle */
+.sort-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:6px;overflow:hidden;}
+.sort-btn{padding:0.32rem 0.75rem;background:transparent;border:none;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:0.62rem;letter-spacing:1px;cursor:pointer;transition:all 0.18s;}
+.sort-btn.on{background:rgba(212,168,67,0.15);color:var(--gold);}
+.sort-btn:hover:not(.on){color:var(--cream);}
+
+.rc-status{margin-bottom:1rem;display:flex;flex-direction:column;gap:0.35rem;}
+.rc-banner{display:flex;align-items:center;gap:0.5rem;font-size:0.7rem;padding:0.5rem 0.85rem;border-radius:7px;}
+.rc-banner.complete{background:rgba(93,200,130,0.08);border:1px solid rgba(93,200,130,0.18);color:var(--green);}
+.rc-banner.partial{background:rgba(224,154,90,0.08);border:1px solid rgba(224,154,90,0.18);color:var(--orange);}
+.rc-banner.absent{background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.18);color:var(--red);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="header-oar">🚣</div>
+  <h1>CREW <em>ALLOCATOR</em></h1>
+  <p class="tagline">Sculling · Coxes · Regatta Crews · Rules</p>
+</header>
+
+<div class="tabs">
+  <button class="tab on" onclick="goTab('squads',this)">👥 Squad Roster</button>
+  <button class="tab" onclick="goTab('coxes',this)">🎙 Coxes</button>
+  <button class="tab" onclick="goTab('regatta',this)">🏆 Regatta Crews</button>
+  <button class="tab" onclick="goTab('rules',this)">⚖️ Rules</button>
+</div>
+
+<!-- SQUADS -->
+<div class="pane on" id="pane-squads">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.6rem;">
+    <p style="font-size:0.67rem;color:var(--muted);">✓ = present today · Rank 1 = strongest</p>
+    <div class="sort-toggle" id="sort-toggle-squads">
+      <button class="sort-btn on" onclick="setSort('squads','rank',this)">⬆ Rank</button>
+      <button class="sort-btn" onclick="setSort('squads','alpha',this)">A–Z</button>
+    </div>
+  </div>
+  <div class="squads-grid">
+    <div class="squad-card s-senior">
+      <div class="squad-title"><div class="dot"></div>Seniors</div>
+      <div class="rower-list" id="list-senior"></div>
+      <button class="add-btn" onclick="addRower('senior')">+ Add Senior</button>
+    </div>
+    <div class="squad-card s-inter">
+      <div class="squad-title"><div class="dot"></div>Intermediates</div>
+      <div class="rower-list" id="list-inter"></div>
+      <button class="add-btn" onclick="addRower('inter')">+ Add Intermediate</button>
+    </div>
+    <div class="squad-card s-junior">
+      <div class="squad-title"><div class="dot"></div>Juniors</div>
+      <div class="rower-list" id="list-junior"></div>
+      <button class="add-btn" onclick="addRower('junior')">+ Add Junior</button>
+    </div>
+  </div>
+  <p style="font-size:0.62rem;color:var(--dim);padding:0 0.2rem;">Juniors may be pulled up to fill seats or cox if needed.</p>
+</div>
+
+<!-- COXES -->
+<div class="pane" id="pane-coxes">
+  <div class="section" style="border-color:rgba(224,122,95,0.2);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;flex-wrap:wrap;gap:0.6rem;">
+      <div class="sec-head" style="margin-bottom:0;"><div class="dot" style="background:var(--cox);"></div><span style="color:var(--cox);">Cox Roster</span></div>
+      <div class="sort-toggle" id="sort-toggle-coxes">
+        <button class="sort-btn on" onclick="setSort('coxes','rank',this)">⬆ Rank</button>
+        <button class="sort-btn" onclick="setSort('coxes','alpha',this)">A–Z</button>
+      </div>
+    </div>
+    <p class="sec-desc">Add all girls who can cox. Toggle <b style="color:var(--inter);">Can Row</b> if they can also row when no cox slot is needed. Rank 1 = most experienced cox.</p>
+    <div class="rower-list" id="list-cox"></div>
+    <button class="add-btn cox-add" onclick="addCox()">+ Add Cox</button>
+  </div>
+</div>
+
+<!-- REGATTA CREWS -->
+<div class="pane" id="pane-regatta">
+  <div class="section" style="border-color:rgba(167,139,219,0.2);">
+    <div class="sec-head"><div class="dot" style="background:var(--purple);"></div><span style="color:var(--purple);">Set Regatta Crews</span></div>
+    <p class="sec-desc">Define crews already set for upcoming regattas. The allocator will keep these together when all members are present. Names must match the roster <em>exactly</em>.</p>
+    <div class="regatta-list" id="list-regatta"></div>
+    <button class="add-btn" style="border-color:rgba(167,139,219,0.25);color:var(--purple);" onclick="addRegatta()">+ Add Regatta Crew</button>
+  </div>
+</div>
+
+<!-- RULES -->
+<div class="pane" id="pane-rules">
+  <div class="section" style="border-color:rgba(224,154,90,0.2);">
+    <div class="sec-head"><div class="dot" style="background:var(--orange);"></div><span style="color:var(--orange);">Pairing Rules</span></div>
+    <p class="sec-desc">Rules are applied to every generated scenario and flagged if violated. Names comma-separated.</p>
+    <div class="rules-list" id="list-rules"></div>
+    <button class="add-btn" style="border-color:rgba(224,154,90,0.25);color:var(--orange);" onclick="addRule()">+ Add Rule</button>
+  </div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="go-btn" onclick="generate()">⚡ Generate Crews</button>
+  <button class="secondary-btn" onclick="loadDemo()">↺ Demo Data</button>
+  <button class="secondary-btn" onclick="clearSavedState()" style="font-size:0.62rem;">🗑 Clear All</button>
+  <div class="stat-pills" id="stat-pills"></div>
+</div>
+
+<!-- RESULTS -->
+<div class="results" id="results">
+  <div class="res-header">Today's Roster</div>
+  <div class="roster-wrap">
+    <div class="roster-title">Ranked Attendance</div>
+    <table>
+      <thead><tr><th>Rank</th><th>Name</th><th>Squad</th><th>Role</th><th>Regatta Crew</th></tr></thead>
+      <tbody id="roster-body"></tbody>
+    </table>
+  </div>
+  <div id="rc-status-wrap"></div>
+  <div class="res-header">Crew Scenarios</div>
+  <div class="sc-grid" id="sc-grid"></div>
+</div>
+
+</div><!-- /wrap -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let R = { senior:[], inter:[], junior:[], cox:[] };
+let regattaCrews = [];
+let rules = [];
+let uid = 0;
+
+// ═══════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════
+function goTab(id, btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pane-'+id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ═══════════════════════════════════════════════════════════
+// SORT
+// ═══════════════════════════════════════════════════════════
+const sortMode = { squads: 'rank', coxes: 'rank' };
+
+function setSort(panel, mode, btn) {
+  sortMode[panel] = mode;
+  // Update button states
+  btn.closest('.sort-toggle').querySelectorAll('.sort-btn').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  // Re-render
+  if (panel === 'squads') { ['senior','inter','junior'].forEach(s => renderSquad(s)); }
+  if (panel === 'coxes') { renderCox(); }
+}
+
+function sortedList(arr, panel) {
+  const mode = sortMode[panel] || 'rank';
+  return [...arr].sort((a, b) =>
+    mode === 'alpha'
+      ? (a.name||'').localeCompare(b.name||'')
+      : (a.rank - b.rank)
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// PERSISTENCE — localStorage auto-save / restore
+// ═══════════════════════════════════════════════════════════
+const STORAGE_KEY = 'crew-allocator-v1';
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ R, regattaCrews, rules, uid }));
+  } catch(e) { console.warn('Save failed:', e); }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!s || !s.R) return false;
+    R = s.R;
+    regattaCrews = s.regattaCrews || [];
+    rules = s.rules || [];
+    uid = s.uid || 0;
+    // Re-render everything
+    ['senior','inter','junior'].forEach(sq => renderSquad(sq));
+    renderCox();
+    renderRegatta();
+    renderRules();
+    updateStats();
+    showSaveStatus('✓ Roster loaded');
+    return true;
+  } catch(e) { console.warn('Load failed:', e); return false; }
+}
+
+function clearSavedState() {
+  if (!confirm('Clear all saved data and reload demo roster?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  loadDemo();
+  showSaveStatus('Demo data loaded');
+}
+
+// Show a small fleeting save indicator
+function showSaveStatus(msg) {
+  let el = document.getElementById('save-status');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'save-status';
+    el.style.cssText = `position:fixed;bottom:1.2rem;right:1.2rem;background:#0c1a2e;border:1px solid rgba(212,168,67,0.35);
+      border-radius:7px;padding:0.45rem 0.9rem;font-family:'JetBrains Mono',monospace;font-size:0.65rem;
+      color:#d4a843;z-index:8000;transition:opacity 0.5s;pointer-events:none;`;
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = '1';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+
+// ═══════════════════════════════════════════════════════════
+// ROWERS
+// ═══════════════════════════════════════════════════════════
+function addRower(squad, name='', rank=1, present=true){
+  R[squad].push({id:++uid, name, rank, present, squad});
+  renderSquad(squad); updateStats();
+}
+
+function addCox(name='', rank=1, present=true, canRow=false){
+  R.cox.push({id:++uid, name, rank, present, canRow});
+  renderCox(); updateStats();
+}
+
+function removeRow(squad, id){ R[squad]=R[squad].filter(r=>r.id!==id); renderSquad(squad); updateStats(); }
+function removeCox(id){ R.cox=R.cox.filter(r=>r.id!==id); renderCox(); updateStats(); }
+
+function togglePresent(squad, id){
+  const r=R[squad].find(r=>r.id===id); if(r){r.present=!r.present; renderSquad(squad); updateStats();}
+}
+function toggleCoxPresent(id){
+  const r=R.cox.find(r=>r.id===id); if(r){r.present=!r.present; renderCox(); updateStats();}
+}
+function toggleCanRow(id){
+  const r=R.cox.find(r=>r.id===id); if(r){r.canRow=!r.canRow; renderCox(); saveState();}
+}
+function setF(squad,id,f,v){const r=R[squad].find(r=>r.id===id);if(r){r[f]=v; saveState();}}
+
+function renderSquad(squad){
+  const el=document.getElementById('list-'+squad);
+  el.innerHTML='';
+  sortedList(R[squad], 'squads').forEach(r=>{
+    const d=document.createElement('div'); d.className='rower-row';
+    d.innerHTML=`
+      <button class="present-btn${r.present?' on':''}" onclick="togglePresent('${squad}',${r.id})">${r.present?'✓':'–'}</button>
+      <input type="text" placeholder="Name…" value="${r.name}" oninput="setF('${squad}',${r.id},'name',this.value)">
+      <div class="rank-wrap"><div class="rank-lbl">Rank</div>
+        <input type="number" class="rank-sel" min="1" max="999" value="${r.rank}"
+          oninput="setF('${squad}',${r.id},'rank',Math.max(1,+this.value||1))">
+      </div>
+      <button class="del-btn" onclick="removeRow('${squad}',${r.id})">✕</button>`;
+    el.appendChild(d);
+  });
+}
+
+function renderCox(){
+  const el=document.getElementById('list-cox');
+  el.innerHTML='';
+  sortedList(R.cox, 'coxes').forEach(r=>{
+    const d=document.createElement('div'); d.className='rower-row';
+    d.innerHTML=`
+      <button class="present-btn${r.present?' on':''}" onclick="toggleCoxPresent(${r.id})">${r.present?'✓':'–'}</button>
+      <input type="text" placeholder="Name…" value="${r.name}" oninput="setF('cox',${r.id},'name',this.value)">
+      <div class="rank-wrap"><div class="rank-lbl">Cox Rank</div>
+        <input type="number" class="rank-sel" style="color:var(--cox);" min="1" max="999" value="${r.rank}"
+          oninput="setF('cox',${r.id},'rank',Math.max(1,+this.value||1))">
+      </div>
+      <button class="cox-toggle${r.canRow?' can-row':''}" onclick="toggleCanRow(${r.id})">
+        <span class="ct-dot"></span>${r.canRow?'Can Row':'Cox Only'}
+      </button>
+      <button class="del-btn" onclick="removeCox(${r.id})">✕</button>`;
+    el.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// REGATTA CREWS
+// ═══════════════════════════════════════════════════════════
+function addRegatta(name='',size=4,members='',coxName=''){
+  regattaCrews.push({id:++uid,name,size,members,coxName}); renderRegatta(); saveState();
+}
+function removeRegatta(id){ regattaCrews=regattaCrews.filter(c=>c.id!==id); renderRegatta(); saveState(); }
+function setRC(id,f,v){const c=regattaCrews.find(c=>c.id===id);if(c){c[f]=v; saveState();}}
+
+function renderRegatta(){
+  const el=document.getElementById('list-regatta'); el.innerHTML='';
+  regattaCrews.forEach(c=>{
+    const d=document.createElement('div'); d.className='rc-row';
+    d.innerHTML=`
+      <div class="field-group"><div class="field-label">Crew Name</div>
+        <input class="rc-name-input" type="text" placeholder="e.g. A Quad" value="${c.name}" oninput="setRC(${c.id},'name',this.value)">
+      </div>
+      <div class="field-group"><div class="field-label">Boat</div>
+        <select class="rc-size-sel" onchange="setRC(${c.id},'size',+this.value)">
+          <option value="4"${c.size==4?' selected':''}>4x+ Quad</option>
+          <option value="2"${c.size==2?' selected':''}>2x Double</option>
+          <option value="1"${c.size==1?' selected':''}>1x Single</option>
+        </select>
+      </div>
+      <div class="field-group" style="flex:1;min-width:160px;"><div class="field-label">Rowers (comma separated)</div>
+        <input class="rc-members-input" type="text" placeholder="Alice M, Sophie T, Emma R, Charlotte B…" value="${c.members}" oninput="setRC(${c.id},'members',this.value)">
+      </div>
+      <div class="field-group"><div class="field-label">Cox (if quad)</div>
+        <input class="rc-cox-input" type="text" placeholder="Cox name…" value="${c.coxName}" oninput="setRC(${c.id},'coxName',this.value)">
+      </div>
+      <button class="del-btn" onclick="removeRegatta(${c.id})">✕</button>`;
+    el.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// RULES
+// ═══════════════════════════════════════════════════════════
+function addRule(type='keep_together',names=''){
+  rules.push({id:++uid,type,names}); renderRules(); saveState();
+}
+function removeRule(id){ rules=rules.filter(r=>r.id!==id); renderRules(); saveState(); }
+function setRule(id,f,v){const r=rules.find(r=>r.id===id);if(r){r[f]=v; saveState();}}
+
+function renderRules(){
+  const el=document.getElementById('list-rules'); el.innerHTML='';
+  rules.forEach(r=>{
+    const d=document.createElement('div'); d.className='rule-row';
+    d.innerHTML=`
+      <select class="rule-type-sel" onchange="setRule(${r.id},'type',this.value)">
+        <option value="keep_together"${r.type=='keep_together'?' selected':''}>✅ Try keep together</option>
+        <option value="keep_apart"${r.type=='keep_apart'?' selected':''}>🚫 Try keep apart</option>
+        <option value="must_together"${r.type=='must_together'?' selected':''}>🔒 Must be together</option>
+        <option value="must_apart"${r.type=='must_apart'?' selected':''}>⛔ Must be apart</option>
+      </select>
+      <input class="rule-names-input" type="text" placeholder="Name 1, Name 2…" value="${r.names}" oninput="setRule(${r.id},'names',this.value)">
+      <button class="del-btn" onclick="removeRule(${r.id})">✕</button>`;
+    el.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════════════════
+function updateStats(){
+  const c={
+    s:R.senior.filter(r=>r.present&&r.name).length,
+    i:R.inter.filter(r=>r.present&&r.name).length,
+    j:R.junior.filter(r=>r.present&&r.name).length,
+    c:R.cox.filter(r=>r.present&&r.name).length
+  };
+  document.getElementById('stat-pills').innerHTML=`
+    <span class="pill p-s">Seniors: ${c.s}</span>
+    <span class="pill p-i">Inters: ${c.i}</span>
+    <span class="pill p-j">Juniors: ${c.j}</span>
+    <span class="pill p-c">Coxes: ${c.c}</span>`;
+  saveState();
+  showSaveStatus('✓ Saved');
+}
+
+// ═══════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════
+function present(squad){ return [...R[squad]].filter(r=>r.present&&r.name.trim()).sort((a,b)=>a.rank-b.rank).map(r=>({...r,squad})); }
+function presentCoxes(){ return [...R.cox].filter(r=>r.present&&r.name.trim()).sort((a,b)=>a.rank-b.rank); }
+
+function nameLower(n){ return n.trim().toLowerCase(); }
+function parseNames(s){ return s.split(',').map(x=>x.trim()).filter(Boolean); }
+function findInAll(name, all){ return all.find(r=>nameLower(r.name)===nameLower(name)); }
+
+function allPresent(){
+  return [
+    ...present('senior').map(r=>({...r,squad:'senior',role:'rower'})),
+    ...present('inter').map(r=>({...r,squad:'inter',role:'rower'})),
+    ...present('junior').map(r=>({...r,squad:'junior',role:'rower'})),
+    ...presentCoxes().map(r=>({...r,squad:'cox',role:'cox'}))
+  ];
+}
+
+// Chip HTML helpers
+function chip(r, squadOverride, moved=false){
+  const sq=squadOverride||r.squad||'senior';
+  const cls={'senior':'ch-s','inter':'ch-i','junior':'ch-j','cox':'ch-c'}[sq]||'ch-s';
+  const src=r.originalSquad||r.squad||'';
+  const mv=moved&&src?` <span class="up-tag">↑${src.slice(0,3)}</span>`:'';
+  return `<span class="chip ${cls}${moved?' ch-moved':''}">${r.name||'?'}${mv}</span>`;
+}
+function coxChip(r, label=''){
+  return `<span class="cox-slot"><span class="cox-icon">🎙</span>${r?r.name+(label?` <span class="up-tag">${label}</span>`:''):'—'}</span>`;
+}
+function missingCox(){
+  return `<span class="cox-slot missing"><span class="cox-icon">🎙</span>⚠ Cox needed</span>`;
+}
+function boatIcon(size){ return size===4?'🚣🚣🚣🚣':size===2?'🚣🚣':'🚣'; }
+function boatTypeName(size,hasCox){ return size===4?'4x'+(hasCox?'+':' (no cox)'):size===2?'2x':'1x'; }
+
+// ═══════════════════════════════════════════════════════════
+// RULE CHECKER
+// ═══════════════════════════════════════════════════════════
+// boats: [{rowers:[{name,...}], cox:{name,...}|null}]
+function checkRules(boats){
+  const checks=[];
+  rules.forEach(rule=>{
+    const names=parseNames(rule.names);
+    if(names.length<2) return;
+    // find boat index for each name
+    const placement={};
+    boats.forEach((b,bi)=>{
+      [...b.rowers, ...(b.cox?[b.cox]:[])].forEach(r=>{
+        names.forEach(n=>{ if(nameLower(r.name)===nameLower(n)) placement[n]=bi; });
+      });
+    });
+    const placed=names.filter(n=>n in placement);
+    if(placed.length<2) return;
+    const indices=[...new Set(placed.map(n=>placement[n]))];
+    const together=indices.length===1;
+    const short=names.map(n=>n.split(' ')[0]).join(' & ');
+    if(rule.type==='keep_together'||rule.type==='must_together'){
+      if(together) checks.push({type:'ok',msg:`✅ ${short} kept together`});
+      else checks.push({type:rule.type==='must_together'?'bad':'warn',msg:`${rule.type==='must_together'?'⛔':'⚠️'} ${short} split across boats`});
+    }
+    if(rule.type==='keep_apart'||rule.type==='must_apart'){
+      if(!together) checks.push({type:'ok',msg:`✅ ${short} kept apart`});
+      else checks.push({type:rule.type==='must_apart'?'bad':'warn',msg:`${rule.type==='must_apart'?'⛔':'⚠️'} ${short} are in the same boat`});
+    }
+  });
+  return checks;
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALLOCATION ENGINE
+// ═══════════════════════════════════════════════════════════
+
+// Assign coxes greedily from available pool (best cox first)
+// Returns {cox, coxPool} where coxPool has the assigned cox removed
+function assignCox(coxPool, juniorPool, allowJuniorCox, seniorBoat=false){
+  if(coxPool.length>0){
+    const c=coxPool[0];
+    return {cox:{...c,role:'cox'}, coxPool:coxPool.slice(1), juniorPool};
+  }
+  // fallback: junior as cox
+  if(allowJuniorCox && juniorPool.length>0){
+    const j=juniorPool[juniorPool.length-1]; // least ranked junior as cox
+    return {cox:{...j,role:'cox',coxedFrom:'junior'}, coxPool, juniorPool:juniorPool.filter(r=>r.id!==j.id)};
+  }
+  return {cox:null, coxPool, juniorPool};
+}
+
+// Fill a pool of rowers into boats, sizes tried in order [4,2,1]
+// Returns {boats:[{size,rowers,cox,squadTag}], leftover}
+function fillBoats(pool, coxPool, juniorFallback, squadTag, allowJuniorCox=true){
+  const boats=[];
+  let rem=[...pool];
+  let cp=[...coxPool];
+  let jp=[...juniorFallback];
+  const sizes=[4,2,1];
+  for(const sz of sizes){
+    while(rem.length>=sz){
+      const rowers=rem.splice(0,sz);
+      let cox=null;
+      if(sz===4){
+        const res=assignCox(cp,jp,allowJuniorCox);
+        cox=res.cox; cp=res.coxPool; jp=res.juniorPool;
+      }
+      boats.push({size:sz,rowers,cox,squadTag});
+    }
+  }
+  return {boats, leftover:rem, coxPool:cp, juniorPool:jp};
+}
+
+// Render a full scenario
+function renderScenario(groups, label, badgeClass, recommended, regattaBoats=[], coxWarnings=[]){
+  // groups: [{label, boats:[{size,rowers,cox,squadTag,isRegatta}], leftover:[]}]
+  // Flatten all boats for rule checking
+  const allBoats=[];
+  [...regattaBoats,...groups.flatMap(g=>g.boats)].forEach(b=>allBoats.push(b));
+  const checks=checkRules(allBoats);
+  const totalBoats=allBoats.length;
+
+  let html='';
+
+  // Regatta boats first
+  if(regattaBoats.length){
+    html+=`<div class="crew-group"><div class="crew-group-lbl">🏆 Regatta Crews (Protected)</div>`;
+    regattaBoats.forEach(b=>{
+      const rChips=b.rowers.map(r=>chip(r,r.squadOverride||r.squad)).join('');
+      const coxH=b.cox ? coxChip(b.cox) : (b.size===4 ? missingCox() : '');
+      html+=`<div class="boat-row">
+        <div class="boat-icon">${boatIcon(b.size)}</div>
+        <div class="boat-info">
+          <div class="boat-name rc">${b.name||boatTypeName(b.size,!!b.cox)}</div>
+          <div class="boat-chips">${rChips}${coxH}</div>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  groups.forEach(g=>{
+    if(!g.boats.length) return;
+    html+=`<div class="crew-group"><div class="crew-group-lbl">${g.label}</div>`;
+    g.boats.forEach((b,i)=>{
+      const rChips=b.rowers.map(r=>chip(r,b.squadTag,!!r.originalSquad)).join('');
+      const coxH=b.size===4?(b.cox?coxChip(b.cox, b.cox.coxedFrom?'jnr cox':''):missingCox()):'';
+      html+=`<div class="boat-row">
+        <div class="boat-icon">${boatIcon(b.size)}</div>
+        <div class="boat-info">
+          <div class="boat-name">${g.label} ${boatTypeName(b.size,!!b.cox)} ${i>0?'#'+(i+1):''}</div>
+          <div class="boat-chips">${rChips}${coxH}</div>
+        </div>
+      </div>`;
+    });
+    if(g.leftover&&g.leftover.length){
+      html+=`<div class="leftover-box"><strong>Unallocated</strong><div style="margin-top:0.4rem;display:flex;flex-wrap:wrap;gap:0.3rem;">${g.leftover.map(r=>chip(r)).join('')}</div></div>`;
+    }
+    html+=`</div>`;
+  });
+
+  // Cox warnings
+  const allChecks=[...coxWarnings,...checks];
+  if(allChecks.length){
+    html+=`<div class="rule-checks">`;
+    allChecks.forEach(c=>{html+=`<div class="rcheck ${c.type}">${c.msg}</div>`;});
+    html+=`</div>`;
+  }
+
+  return {html, totalBoats, checks};
+}
+
+// ═══════════════════════════════════════════════════════════
+// RESOLVE REGATTA CREWS
+// ═══════════════════════════════════════════════════════════
+function resolveRegattaCrews(allPresentArr, coxesPresent){
+  return regattaCrews.filter(rc=>rc.members&&rc.members.trim()).map(rc=>{
+    const mNames=parseNames(rc.members);
+    if(!mNames.length) return null;
+    const found=mNames.map(n=>findInAll(n,allPresentArr)).filter(Boolean);
+    const missing=mNames.filter(n=>!findInAll(n,allPresentArr));
+    const cox=rc.coxName&&rc.coxName.trim()?findInAll(rc.coxName,coxesPresent):null;
+    const coxMissing=rc.size===4&&rc.coxName&&rc.coxName.trim()&&!cox;
+    const complete=missing.length===0&&found.length>=Math.min(mNames.length,rc.size)&&!coxMissing;
+    return {...rc, found, missing, cox, coxMissing, complete, memberNames:mNames};
+  }).filter(Boolean);
+}
+
+// ═══════════════════════════════════════════════════════════
+// MAIN GENERATE
+// ═══════════════════════════════════════════════════════════
+function generate(){
+  const seniors=present('senior');
+  const inters=present('inter');
+  const juniors=present('junior');
+  const coxes=presentCoxes();
+  const all=allPresent();
+
+  if(seniors.length+inters.length+juniors.length===0){
+    alert('Add some rowers first!'); return;
+  }
+
+  // ── Roster table ──
+  const tbody=document.getElementById('roster-body');
+  tbody.innerHTML='';
+  const squadLabel={senior:'Senior',inter:'Intermediate',junior:'Junior',cox:'Cox'};
+  // find which regatta crew each person is in
+  const rcMap={};
+  regattaCrews.forEach(rc=>{
+    parseNames(rc.members).forEach(n=>{ rcMap[nameLower(n)]=rc.name||'Regatta'; });
+    if(rc.coxName) rcMap[nameLower(rc.coxName)]=(rc.name||'Regatta')+' (cox)';
+  });
+
+  [...seniors,...inters,...juniors].forEach(r=>{
+    const rcName=rcMap[nameLower(r.name)]||'—';
+    const sqCls={'senior':'ch-s','inter':'ch-i','junior':'ch-j'}[r.squad]||'ch-s';
+    const sqLbl={'senior':'Senior','inter':'Intermediate','junior':'Junior'}[r.squad]||r.squad||'—';
+    tbody.innerHTML+=`<tr>
+      <td><span class="r-badge">${r.rank}</span></td>
+      <td>${r.name||'—'}</td>
+      <td><span class="chip ${sqCls}">${sqLbl}</span></td>
+      <td><span class="chip ch-s">Rower</span></td>
+      <td style="color:var(--muted);font-size:0.68rem;">${rcName}</td>
+    </tr>`;
+  });
+  coxes.forEach(r=>{
+    const rcName=rcMap[nameLower(r.name)]||'—';
+    tbody.innerHTML+=`<tr>
+      <td><span class="r-badge" style="background:rgba(224,122,95,0.14);color:var(--cox);">${r.rank}</span></td>
+      <td>${r.name||'—'}</td>
+      <td><span class="chip ch-c">Cox</span></td>
+      <td><span class="chip ch-c">${r.canRow?'Cox / Rower':'Cox Only'}</span></td>
+      <td style="color:var(--muted);font-size:0.68rem;">${rcName}</td>
+    </tr>`;
+  });
+
+  // ── Regatta crew resolution ──
+  const resolved=resolveRegattaCrews([...seniors,...inters,...juniors], coxes);
+  const rcStatusWrap=document.getElementById('rc-status-wrap');
+  if(resolved.length){
+    let statusHtml='<div style="margin-bottom:1.5rem;"><div class="res-header">Regatta Crew Status</div><div class="rc-status">';
+    resolved.forEach(rc=>{
+      if(rc.missing.length===0&&!rc.coxMissing){
+        statusHtml+=`<div class="rc-banner complete">✅ <strong>${rc.name||'Regatta Crew'}</strong> — all ${rc.memberNames.length} rowers${rc.cox?' + cox ':' '}present and ready</div>`;
+      } else if(rc.found.length>0){
+        const missList=[...rc.missing,...(rc.coxMissing?[rc.coxName+' (cox)']:[])].join(', ');
+        statusHtml+=`<div class="rc-banner partial">⚠️ <strong>${rc.name||'Regatta Crew'}</strong> — missing: ${missList}</div>`;
+      } else {
+        statusHtml+=`<div class="rc-banner absent">❌ <strong>${rc.name||'Regatta Crew'}</strong> — no members present</div>`;
+      }
+    });
+    statusHtml+='</div></div>';
+    rcStatusWrap.innerHTML=statusHtml;
+  } else { rcStatusWrap.innerHTML=''; }
+
+  // IDs used by regatta crews (complete ones) — lock them out of normal pool
+  const lockedRowerIds=new Set();
+  const lockedCoxIds=new Set();
+  const regattaBoatsForScenario=[];
+
+  resolved.filter(rc=>rc.complete).forEach(rc=>{
+    rc.found.forEach(r=>lockedRowerIds.add(r.id));
+    if(rc.cox) lockedCoxIds.add(rc.cox.id);
+    regattaBoatsForScenario.push({
+      size:rc.size, name:rc.name, isRegatta:true,
+      rowers:rc.found.map(r=>({...r,squad:r.squad})),
+      cox:rc.cox||null
+    });
+  });
+
+  // Free pools (excluding locked regatta members)
+  const freeSeniors=seniors.filter(r=>!lockedRowerIds.has(r.id));
+  const freeInters=inters.filter(r=>!lockedRowerIds.has(r.id));
+  const freeJuniors=juniors.filter(r=>!lockedRowerIds.has(r.id));
+  const freeCoxes=coxes.filter(r=>!lockedCoxIds.has(r.id));
+  // Coxes who can also row
+  const coxRowers=freeCoxes.filter(r=>r.canRow).map(r=>({...r,squad:'inter',originalRole:'cox'}));
+
+  // Build scenarios
+  const scenarios=[];
+
+  // ── SCENARIO 1: Regatta-Aware, Quads First, Move Up ──
+  {
+    let senPool=[...freeSeniors];
+    let intPool=[...freeInters];
+    let junPool=[...freeJuniors];
+    let coxPool=[...freeCoxes];
+    let warnings=[];
+
+    // Top-up seniors with inters to make quads
+    const senBoats=[]; let remSen=[...senPool];
+    while(remSen.length>0){
+      if(remSen.length>=4){
+        const rowers=remSen.splice(0,4);
+        const res=assignCox(coxPool,junPool,true,true);
+        coxPool=res.coxPool; junPool=res.juniorPool;
+        if(!res.cox) warnings.push({type:'warn',msg:`⚠️ Senior quad has no cox — add more coxes or juniors`});
+        senBoats.push({size:4,rowers,cox:res.cox,squadTag:'senior'});
+      } else {
+        const need=4-remSen.length;
+        if(intPool.length>=need){
+          const pulled=intPool.splice(0,need).map(r=>({...r,originalSquad:'inter'}));
+          const rowers=[...remSen.splice(0),  ...pulled];
+          const res=assignCox(coxPool,junPool,true);
+          coxPool=res.coxPool; junPool=res.juniorPool;
+          if(!res.cox) warnings.push({type:'warn',msg:`⚠️ Mixed quad has no cox`});
+          senBoats.push({size:4,rowers,cox:res.cox,squadTag:'senior'});
+        } else if(remSen.length>=2){
+          senBoats.push({size:2,rowers:remSen.splice(0,2),cox:null,squadTag:'senior'});
+        } else {
+          senBoats.push({size:1,rowers:remSen.splice(0,1),cox:null,squadTag:'senior'});
+        }
+      }
+    }
+
+    // Inters, top up with juniors
+    const intBoats=[]; let remInt=[...intPool];
+    while(remInt.length>0){
+      if(remInt.length>=4){
+        const rowers=remInt.splice(0,4);
+        const res=assignCox(coxPool,junPool,true);
+        coxPool=res.coxPool; junPool=res.juniorPool;
+        if(!res.cox) warnings.push({type:'warn',msg:`⚠️ Inter quad has no cox`});
+        intBoats.push({size:4,rowers,cox:res.cox,squadTag:'inter'});
+      } else {
+        const need=4-remInt.length;
+        if(junPool.length>=need){ // pull juniors up to fill inter quad
+          const pulled=junPool.splice(0,need).map(r=>({...r,originalSquad:'junior'}));
+          const rowers=[...remInt.splice(0),...pulled];
+          const res=assignCox(coxPool,junPool,true);
+          coxPool=res.coxPool; junPool=res.juniorPool;
+          if(!res.cox) warnings.push({type:'warn',msg:`⚠️ Mixed inter quad has no cox`});
+          intBoats.push({size:4,rowers,cox:res.cox,squadTag:'inter'});
+        } else if(remInt.length>=2){
+          intBoats.push({size:2,rowers:remInt.splice(0,2),cox:null,squadTag:'inter'});
+        } else {
+          intBoats.push({size:1,rowers:remInt.splice(0,1),cox:null,squadTag:'inter'});
+        }
+      }
+    }
+
+    // Juniors
+    const {boats:junBoats,leftover:junLeft,coxPool:cp2}=fillBoats(junPool,coxPool,[],  'junior',false);
+    coxPool=cp2;
+
+    // Unused coxes who can row → add as rowers to smallest boat or note
+    const unusedCoxes=coxPool.filter(c=>c.canRow);
+    if(unusedCoxes.length) warnings.push({type:'ok',msg:`ℹ️ ${unusedCoxes.map(c=>c.name).join(', ')} available to row (cox/rower)`});
+
+    const {html,totalBoats,checks}=renderScenario(
+      [{label:'Seniors',boats:senBoats,leftover:[]},{label:'Intermediates',boats:intBoats,leftover:[]},{label:'Juniors',boats:junBoats,leftover:junLeft}],
+      'Quads First — Move Up','b-rec',true, regattaBoatsForScenario,[...warnings]
+    );
+    scenarios.push({title:'Quads First — Move Up',badge:'Recommended',badgeClass:'b-rec',recommended:true,totalBoats,html});
+  }
+
+  // ── SCENARIO 2: Pure Squads (no movement) ──
+  {
+    let coxPool=[...freeCoxes];
+    let junPool=[...freeJuniors];
+    const warnings=[];
+    const senRes=fillBoats(freeSeniors,coxPool,junPool,'senior',true);
+    coxPool=senRes.coxPool; junPool=senRes.juniorPool;
+    const intRes=fillBoats(freeInters,coxPool,junPool,'inter',true);
+    coxPool=intRes.coxPool; junPool=intRes.juniorPool;
+    const junRes=fillBoats(junPool,coxPool,[],'junior',false);
+
+    // flag any missing coxes
+    [...senRes.boats,...intRes.boats].filter(b=>b.size===4&&!b.cox).forEach(()=>{
+      warnings.push({type:'warn',msg:'⚠️ A quad is missing a cox'});
+    });
+
+    const {html,totalBoats}=renderScenario(
+      [{label:'Seniors',boats:senRes.boats,leftover:senRes.leftover},{label:'Intermediates',boats:intRes.boats,leftover:intRes.leftover},{label:'Juniors',boats:junRes.boats,leftover:junRes.leftover}],
+      'Pure Squads','b-alt',false, regattaBoatsForScenario, warnings
+    );
+    scenarios.push({title:'Pure Squads — No Movement',badge:'Option B',badgeClass:'b-alt',recommended:false,totalBoats,html});
+  }
+
+  // ── SCENARIO 3: Two Senior Quads (merge top seniors + inters) ──
+  if(freeSeniors.length+freeInters.length>=8){
+    let coxPool=[...freeCoxes];
+    let junPool=[...freeJuniors];
+    const warnings=[];
+    const combined=[...freeSeniors,...freeInters].sort((a,b)=>a.rank-b.rank);
+    const senBoats=[];
+    let rem=[...combined];
+    while(rem.length>=4){
+      const rowers=rem.splice(0,4).map(r=>({...r,squadTag:'senior'}));
+      const res=assignCox(coxPool,junPool,true);
+      coxPool=res.coxPool; junPool=res.juniorPool;
+      if(!res.cox) warnings.push({type:'warn',msg:'⚠️ A senior quad is missing a cox'});
+      senBoats.push({size:4,rowers,cox:res.cox,squadTag:'senior'});
+    }
+    if(rem.length>=2) senBoats.push({size:2,rowers:rem.splice(0,2),cox:null,squadTag:'senior'});
+    if(rem.length) senBoats.push({size:1,rowers:rem.splice(0,1),cox:null,squadTag:'senior'});
+    const junRes=fillBoats(junPool,coxPool,[],'junior',false);
+
+    const {html,totalBoats}=renderScenario(
+      [{label:'Seniors (merged)',boats:senBoats,leftover:rem},{label:'Juniors',boats:junRes.boats,leftover:junRes.leftover}],
+      '2× Senior Quads','b-alt',false, regattaBoatsForScenario, warnings
+    );
+    scenarios.push({title:'2× Senior Quads',badge:'Option C',badgeClass:'b-alt',recommended:false,totalBoats,html});
+  }
+
+  // ── SCENARIO 4: Development — Inters + Juniors together ──
+  if(freeInters.length+freeJuniors.length>=4){
+    let coxPool=[...freeCoxes];
+    const warnings=[];
+    const senRes=fillBoats(freeSeniors,coxPool,[],'senior',true);
+    coxPool=senRes.coxPool;
+    const devPool=[...freeInters,...freeJuniors].sort((a,b)=>a.rank-b.rank);
+    const devRes=fillBoats(devPool,coxPool,[],'inter',false);
+    devRes.boats.filter(b=>b.size===4&&!b.cox).forEach(()=>warnings.push({type:'warn',msg:'⚠️ Dev quad missing cox'}));
+
+    const {html,totalBoats}=renderScenario(
+      [{label:'Seniors',boats:senRes.boats,leftover:senRes.leftover},{label:'Development (Inters + Juniors)',boats:devRes.boats,leftover:devRes.leftover}],
+      'Development Focus','b-dev',false, regattaBoatsForScenario, warnings
+    );
+    scenarios.push({title:'Development Focus',badge:'Option D',badgeClass:'b-dev',recommended:false,totalBoats,html});
+  }
+
+  // ── Render scenario cards ──
+  const grid=document.getElementById('sc-grid');
+  grid.innerHTML='';
+  scenarios.forEach(s=>{
+    const card=document.createElement('div');
+    card.className=`sc-card${s.recommended?' best':''}`;
+    card.innerHTML=`
+      <div class="sc-top">
+        <span class="sc-badge ${s.badgeClass}">${s.badge}</span>
+        <div class="sc-title">${s.title}</div>
+        <div class="sc-meta">${s.totalBoats} boat${s.totalBoats!==1?'s':''}</div>
+      </div>
+      <div class="sc-body">${s.html}</div>`;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('results').classList.add('on');
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ═══════════════════════════════════════════════════════════
+// DEMO DATA
+// ═══════════════════════════════════════════════════════════
+function loadDemo(){
+  R={senior:[],inter:[],junior:[],cox:[]};
+  regattaCrews=[]; rules=[]; uid=0;
+  document.getElementById('results').classList.remove('on');
+
+  // Seniors
+  [['Alice M',1],['Sophie T',2],['Emma R',3],['Charlotte B',4],['Lily H',5],['Grace W',6],['Mia P',7]]
+    .forEach(([n,r])=>addRower('senior',n,r,true));
+
+  // Inters
+  [['Freya L',1],['Isla C',2],['Poppy D',3],['Matilda F',4],['Ruby A',5],['Amber S',6]]
+    .forEach(([n,r])=>addRower('inter',n,r,true));
+
+  // Juniors
+  [['Evie N',1],['Zoe K',2],['Chloe M',3],['Scarlett J',4],['Imogen B',5]]
+    .forEach(([n,r])=>addRower('junior',n,r,true));
+  R.junior[2].present=false; // Chloe absent today
+  renderSquad('junior');
+
+  // Coxes
+  addCox('Hannah C',1,true,false);   // designated cox, present
+  addCox('Bella W',2,true,true);     // can also row
+  addCox('Tara M',3,false,false);    // absent today
+
+  // Regatta crews
+  addRegatta('A Quad',4,'Alice M, Sophie T, Emma R, Charlotte B','Hannah C');
+  addRegatta('B Quad',4,'Freya L, Isla C, Poppy D, Matilda F','Bella W');
+  addRegatta('Senior Double',2,'Lily H, Grace W','');
+
+  // Rules
+  addRule('keep_apart','Alice M, Sophie T');  // example: keep apart for balance
+  addRule('keep_together','Evie N, Zoe K');   // example: juniors who work well together
+  addRule('must_apart','Poppy D, Amber S');   // coaching note
+
+  updateStats();
+}
+
+// Load saved state on startup — fall back to demo data if nothing saved yet
+if (!loadState()) loadDemo();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PWA BOOTSTRAP — icon, manifest & service worker all inline
+     so the single HTML file works on GitHub Pages with no
+     extra files needed.
+═══════════════════════════════════════════════════════════ -->
+<script>
+(function initPWA() {
+
+  // ── 1. Generate app icon — rowing boat emoji on dark bg ──
+  function makeIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+
+    // Rounded rect background
+    const r = size * 0.22;
+    ctx.fillStyle = '#07111f';
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(size - r, 0);
+    ctx.quadraticCurveTo(size, 0, size, r);
+    ctx.lineTo(size, size - r);
+    ctx.quadraticCurveTo(size, size, size - r, size);
+    ctx.lineTo(r, size);
+    ctx.quadraticCurveTo(0, size, 0, size - r);
+    ctx.lineTo(0, r);
+    ctx.quadraticCurveTo(0, 0, r, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Emoji centred
+    ctx.font = `${size * 0.58}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🚣', size * 0.5, size * 0.52);
+
+    return c.toDataURL('image/png');
+  }
+
+  const icon192 = makeIcon(192);
+  const icon512 = makeIcon(512);
+
+  // ── 2. Set apple-touch-icon ───────────────────────────────
+  document.getElementById('apple-touch-icon').href = icon192;
+
+  // ── 3. Build & inject manifest ────────────────────────────
+  const manifest = {
+    name: 'Crew Allocator',
+    short_name: 'Crews',
+    description: 'Rowing squad crew allocation — coxes, regatta crews & rules',
+    start_url: './',
+    display: 'standalone',
+    background_color: '#07111f',
+    theme_color: '#07111f',
+    orientation: 'portrait-primary',
+    icons: [
+      { src: icon192, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+      { src: icon512, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+    ]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(manifestBlob);
+
+  // ── 4. Register Service Worker (inline via blob) ──────────
+  const swCode = `
+const CACHE = 'crew-allocator-v1';
+
+// On install: cache the main page
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(
+    caches.open(CACHE).then(cache =>
+      // cache the page itself by fetching the current URL
+      fetch(self.location.origin + self.registration.scope)
+        .then(r => cache.put(self.registration.scope, r))
+        .catch(() => {})
+    )
+  );
+});
+
+// On activate: clean up old caches
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+
+// On fetch: serve from cache, fall back to network
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(response => {
+        if (response && response.status === 200 && response.type === 'basic') {
+          const clone = response.clone();
+          caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(self.registration.scope));
+    })
+  );
+});
+  `;
+
+  if ('serviceWorker' in navigator) {
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swURL = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swURL, { scope: './' })
+      .then(reg => {
+        console.log('SW registered:', reg.scope);
+        // Show install prompt banner
+        showInstallHint();
+      })
+      .catch(err => console.log('SW registration failed:', err));
+  }
+
+  // ── 5. "Add to Home Screen" install prompt ────────────────
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallBanner(e);
+  });
+
+  function showInstallHint() {
+    // Only show if not already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      // iOS doesn't fire beforeinstallprompt — show manual hint
+      setTimeout(() => showIOSBanner(), 2000);
+    }
+  }
+
+  function showInstallBanner(promptEvent) {
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    const banner = makeBanner(
+      '📲 Install Crew Allocator',
+      'Add to your home screen for offline use',
+      'Install',
+      () => {
+        promptEvent.prompt();
+        promptEvent.userChoice.then(() => banner.remove());
+      }
+    );
+    document.body.appendChild(banner);
+  }
+
+  function showIOSBanner() {
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    const banner = makeBanner(
+      '📲 Add to Home Screen',
+      'Tap the Share button below then "Add to Home Screen"',
+      'Got it',
+      () => banner.remove()
+    );
+    document.body.appendChild(banner);
+  }
+
+  function makeBanner(title, msg, btnLabel, onBtn) {
+    const div = document.createElement('div');
+    div.style.cssText = `
+      position:fixed;bottom:0;left:0;right:0;z-index:9999;
+      background:#0c1a2e;border-top:1px solid rgba(212,168,67,0.4);
+      padding:1rem 1.5rem;display:flex;align-items:center;gap:1rem;
+      font-family:'JetBrains Mono',monospace;animation:slideUp2 0.3s ease;
+      box-shadow:0 -8px 32px rgba(0,0,0,0.5);
+    `;
+    div.innerHTML = `
+      <style>@keyframes slideUp2{from{transform:translateY(100%);}to{transform:translateY(0);}}</style>
+      <div style="flex:1;">
+        <div style="font-size:0.8rem;color:#d4a843;font-weight:500;margin-bottom:0.2rem;">${title}</div>
+        <div style="font-size:0.68rem;color:#7a8fa8;line-height:1.4;">${msg}</div>
+      </div>
+      <button style="background:#d4a843;color:#07111f;border:none;border-radius:7px;padding:0.6rem 1.1rem;
+        font-family:inherit;font-size:0.72rem;font-weight:500;cursor:pointer;white-space:nowrap;letter-spacing:1px;"
+        onclick="this.parentElement.__cb()">
+        ${btnLabel}
+      </button>
+      <button style="background:transparent;border:none;color:#7a8fa8;font-size:1.2rem;cursor:pointer;padding:0.2rem 0.4rem;"
+        onclick="this.parentElement.remove()">×</button>
+    `;
+    div.__cb = onBtn;
+    return div;
+  }
+
+  // ── 6. Show "installed" confirmation if launched standalone ─
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    console.log('Running as installed PWA ✓');
+  }
+
+})();
+</script>
+</body>
+</html>
